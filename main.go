@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -39,11 +38,6 @@ func main() {
 		for _, event := range events {
 			if len(event.Source.GroupID) == 0 {
 				return
-			}
-			if userProfileResponse, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do(); err != nil {
-				log.Print(err)
-			} else {
-				fmt.Printf("%+v\n", userProfileResponse)
 			}
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
