@@ -52,6 +52,7 @@ func main() {
 					case "喵嗚喵": // 取得訂閱者
 						var msg string
 						mu.Lock()
+						defer mu.Unlock()
 						userList, exists := subscribeMap[event.Source.GroupID]
 						if !exists || len(userList) == 0 {
 							msg = "目前沒有人需要提醒喵"
@@ -62,7 +63,6 @@ func main() {
 							}
 							msg = msg[:len(msg)-2] + "，喵"
 						}
-						mu.Unlock()
 						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(msg)).Do(); err != nil {
 							log.Print(err)
 						}
