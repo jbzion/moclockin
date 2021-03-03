@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"fmt"
 	"log"
 	"net/http"
 	"github.com/line/line-bot-sdk-go/linebot"
@@ -26,6 +27,7 @@ func main() {
 			return
 		}
 		for _, event := range events {
+			fmt.Printf("%+v\n", event)
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:

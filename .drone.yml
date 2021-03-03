@@ -1,0 +1,87 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+workspace:
+ base: /go
+ path: /src/github.com/eric11jhou/moclockin
+
+trigger:
+  event:
+    - push
+
+steps:
+  - name: fetch
+    image: plugins/git
+    commands:
+      - git fetch --tags --depth=50
+
+  - name: testing
+    image: golang:1.15
+    commands:
+      - go test -v ./...
+      - go vet
+    depends_on:
+      - fetch
+
+  - name: build_linux_amd64
+    image: golang:1.15
+    commands:
+      - make build_linux_amd64
+    depends_on:
+      - testing
+
+  - name: docker
+    image: plugins/docker
+    depends_on:
+      - build_linux_amd64
+    settings:
+      registry: eric11jhou
+      repo: eric11jhou/moclockin
+      auto_tag: true
+      dockerfile: Dockerfile
+      username: 
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+  - name: deploy
+    image: pelotech/drone-helm3
+    depends_on:
+      - docker
+    environment:
+      CHANNEL_SECRET:
+        from_secret: channel_secret
+      CHANNEL_TOKEN:
+        from_secret: channel_token
+    settings:
+      values:
+        - channel_secret=$CHANNEL_SECRET
+        - channel_token=$CHANNEL_TOKEN
+      kube_api_server:
+        from_secret: sofinx_kubernetes_server_dev
+      kube_token:
+        from_secret: sofinx_kubernetes_token_dev
+      kube_certificate:
+        from_secret: sofinx_kubernetes_ca_dev
+      mode: upgrade
+      kube_service_account: helm
+      wait_for_upgrade: true
+      skip_tls_verify: true
+      chart: ./helm
+      release: moclockin
+      values_files: ["./helm/values.yaml"]
+      namespace: side
+
+  - name: notify_telegram
+    image: appleboy/drone-telegram
+    depends_on:
+      - deploy
+    settings:
+      token: 1445829015:AAHOABa6fLvfbBMLRC5V1zvFKR0moNnJr2o
+      to: -424119807
+      message: >
+        moclockin CI/CD 完成! 🎉
+        狀態： ${DRONE_BUILD_STATUS}
+        Commit `${DRONE_COMMIT}` (by ${DRONE_COMMIT_AUTHOR}) on branch ${DRONE_COMMIT_BRANCH}.
+        <${DRONE_COMMIT_LINK} | 查看建置紀錄>
