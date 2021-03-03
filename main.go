@@ -68,7 +68,7 @@ func main() {
 						if !exists || len(userList) == 0 {
 							msg = "目前沒有人需要提醒喵"
 						} else {
-							msg = "目前訂閱提醒服務的有: "
+							msg = "目前訂閱提醒服務的有:\n"
 							for _, user := range userList {
 								inHour := user.InHour + 8
 								if inHour >= 24 {
@@ -78,7 +78,7 @@ func main() {
 								if outHour >= 24 {
 									outHour -= 24
 								}
-								msg += fmt.Sprintf("%s: %d:%d上班 %d:%d下班\n", user.DisplayName, inHour, user.InMin, outHour, user.OutMin)
+								msg += fmt.Sprintf("[%s] %d:%d - %d:%d\n", user.DisplayName, inHour, user.InMin, outHour, user.OutMin)
 							}
 							msg += "喵"
 						}
@@ -248,6 +248,8 @@ func run() {
 				if _, exists := ok[groupID][userID]; exists {
 					continue
 				}
+				fmt.Println(tt)
+				fmt.Println(user)
 				if tt.Hour() == user.InHour && tt.Minute()-15 <= user.InMin {
 					inMsg += user.DisplayName + ", "
 				}
