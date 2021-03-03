@@ -32,10 +32,11 @@ func init() {
 var bot *linebot.Client
 
 func main() {
-	bot, err := linebot.New(
+	client, err := linebot.New(
 		os.Getenv("CHANNEL_SECRET"),
 		os.Getenv("CHANNEL_TOKEN"),
 	)
+	bot = client
 	if err != nil {
 		log.Fatal(err)
 	}
