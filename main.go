@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -26,7 +27,7 @@ var subscribeMap map[string]map[string]*User // map[groupID][userID]*User
 
 func init() {
 	subscribeMap = make(map[string]map[string]*User)
-	ok = make(map[string]time.Time)
+	ok = make(map[string]map[string]time.Time)
 }
 
 var bot *linebot.Client
@@ -69,7 +70,15 @@ func main() {
 						} else {
 							msg = "目前訂閱提醒服務的有: "
 							for _, user := range userList {
-								msg += user.DisplayName + ", "
+								inHour := user.InHour + 8
+								if inHour >= 24 {
+									inHour -= 24
+								}
+								outHour := user.OutHour + 8
+								if outHour >= 24 {
+									outHour -= 24
+								}
+								msg += fmt.Sprintf("%s: %d:%d上班 %d:%d下班\n", user.DisplayName, inHour, user.InMin, outHour, user.OutMin)
 							}
 							msg += "喵"
 						}
@@ -101,6 +110,10 @@ func main() {
 							}
 							return
 						}
+						inHour -= 8
+						if inHour < 0 {
+							inHour += 24
+						}
 						inMin, err := strconv.Atoi(arr[2])
 						if err != nil {
 							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("格式錯了喵")).Do(); err != nil {
@@ -114,6 +127,10 @@ func main() {
 								log.Print(err)
 							}
 							return
+						}
+						outHour -= 8
+						if outHour < 0 {
+							outHour += 24
 						}
 						outMin, err := strconv.Atoi(arr[4])
 						if err != nil {
@@ -170,9 +187,17 @@ func main() {
 							if (now.Hour() == user.InHour && now.Minute()-15 <= user.InMin) ||
 								(now.Hour() == user.OutHour && now.Minute()-15 <= user.OutMin) {
 								muok.Lock()
-								ok[event.Source.UserID] = time.Now().Add(time.Minute * 15)
+								var msg string
+								if _, exists := ok[event.Source.GroupID]; !exists {
+									ok[event.Source.GroupID] = make(map[string]time.Time)
+								}
+								if _, exists := ok[event.Source.GroupID][event.Source.UserID]; exists {
+									msg = userProfileResponse.DisplayName + " 你打過卡了喵"
+								} else {
+									ok[event.Source.GroupID][event.Source.UserID] = time.Now().Add(time.Minute * 15)
+									msg = userProfileResponse.DisplayName + " 已打卡喵"
+								}
 								muok.Unlock()
-								msg := userProfileResponse.DisplayName + " 已打卡喵"
 								if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(msg)).Do(); err != nil {
 									log.Print(err)
 								}
@@ -192,7 +217,7 @@ func main() {
 	}
 }
 
-var ok map[string]time.Time
+var ok map[string]map[string]time.Time
 var muok sync.Mutex
 
 func run() {
@@ -204,9 +229,11 @@ func run() {
 		tt := <-t.C
 		go func() {
 			muok.Lock()
-			for userID, t := range ok {
-				if t.Before(tt) {
-					delete(ok, userID)
+			for groupID := range ok {
+				for userID, t := range ok[groupID] {
+					if t.Before(tt) {
+						delete(ok[groupID], userID)
+					}
 				}
 			}
 			muok.Unlock()
@@ -215,7 +242,10 @@ func run() {
 		for groupID, userList := range subscribeMap {
 			var inMsg, outMsg string
 			for userID, user := range userList {
-				if _, exists := ok[userID]; exists {
+				if _, exists := ok[groupID]; !exists {
+					continue
+				}
+				if _, exists := ok[groupID][userID]; exists {
 					continue
 				}
 				if tt.Hour() == user.InHour && tt.Minute()-15 <= user.InMin {
