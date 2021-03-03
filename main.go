@@ -242,11 +242,10 @@ func run() {
 		for groupID, userList := range subscribeMap {
 			var inMsg, outMsg string
 			for userID, user := range userList {
-				if _, exists := ok[groupID]; !exists {
-					continue
-				}
-				if _, exists := ok[groupID][userID]; exists {
-					continue
+				if _, exists := ok[groupID]; exists {
+					if _, exists := ok[groupID][userID]; exists {
+						continue
+					}
 				}
 				fmt.Println(tt)
 				fmt.Println(user)
