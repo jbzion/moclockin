@@ -36,7 +36,6 @@ steps:
     depends_on:
       - build_linux_amd64
     settings:
-      registry: eric11jhou
       repo: eric11jhou/moclockin
       auto_tag: true
       dockerfile: Dockerfile
