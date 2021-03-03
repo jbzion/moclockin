@@ -46,9 +46,12 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 Selector labels
 */}}
 {{- define "moclockin.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "moclockin.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/name: {{ .Chart.Name }}
+app.kubernetes.io/instance: {{ include "moclockin.fullname" . }}
+app: {{ .Chart.Name }}
+version: {{ .Values.image.tag | default .Chart.AppVersion | quote }}
 {{- end }}
+
 
 {{/*
 Create the name of the service account to use
