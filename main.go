@@ -4,18 +4,32 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/line/line-bot-sdk-go/linebot"
 )
 
 var mu sync.Mutex
 
-var subscribeMap map[string]map[string]string // map[groupID][userID]DisplayName
+type User struct {
+	DisplayName string
+	InHour      int
+	InMin       int
+	OutHour     int
+	OutMin      int
+}
+
+var subscribeMap map[string]map[string]*User // map[groupID][userID]*User
 
 func init() {
-	subscribeMap = make(map[string]map[string]string)
+	subscribeMap = make(map[string]map[string]*User)
+	ok = make(map[string]time.Time)
 }
+
+var bot *linebot.Client
 
 func main() {
 	bot, err := linebot.New(
@@ -42,7 +56,8 @@ func main() {
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
-					switch message.Text {
+					arr := strings.Split(message.Text, " ")
+					switch arr[0] {
 					case "喵嗚喵": // 取得訂閱者
 						var msg string
 						mu.Lock()
@@ -52,15 +67,21 @@ func main() {
 							msg = "目前沒有人需要提醒喵"
 						} else {
 							msg = "目前訂閱提醒服務的有: "
-							for _, v := range userList {
-								msg += v + ", "
+							for _, user := range userList {
+								msg += user.DisplayName + ", "
 							}
-							msg = msg[:len(msg)-2] + "，喵"
+							msg += "喵"
 						}
 						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(msg)).Do(); err != nil {
 							log.Print(err)
 						}
 					case "喵嗚": // 訂閱
+						if len(arr) != 5 {
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("格式錯了喵")).Do(); err != nil {
+								log.Print(err)
+							}
+							return
+						}
 						userProfileResponse, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
 						if err != nil {
 							log.Print(err)
@@ -70,9 +91,43 @@ func main() {
 						defer mu.Unlock()
 						_, exists := subscribeMap[event.Source.GroupID]
 						if !exists {
-							subscribeMap[event.Source.GroupID] = make(map[string]string)
+							subscribeMap[event.Source.GroupID] = make(map[string]*User)
 						}
-						subscribeMap[event.Source.GroupID][event.Source.UserID] = userProfileResponse.DisplayName
+						inHour, err := strconv.Atoi(arr[1])
+						if err != nil {
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("格式錯了喵")).Do(); err != nil {
+								log.Print(err)
+							}
+							return
+						}
+						inMin, err := strconv.Atoi(arr[2])
+						if err != nil {
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("格式錯了喵")).Do(); err != nil {
+								log.Print(err)
+							}
+							return
+						}
+						outHour, err := strconv.Atoi(arr[3])
+						if err != nil {
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("格式錯了喵")).Do(); err != nil {
+								log.Print(err)
+							}
+							return
+						}
+						outMin, err := strconv.Atoi(arr[4])
+						if err != nil {
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("格式錯了喵")).Do(); err != nil {
+								log.Print(err)
+							}
+							return
+						}
+						subscribeMap[event.Source.GroupID][event.Source.UserID] = &User{
+							DisplayName: userProfileResponse.DisplayName,
+							InHour:      inHour,
+							InMin:       inMin,
+							OutHour:     outHour,
+							OutMin:      outMin,
+						}
 						msg := userProfileResponse.DisplayName + " 已訂閱喵"
 						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(msg)).Do(); err != nil {
 							log.Print(err)
@@ -102,14 +157,86 @@ func main() {
 						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(msg)).Do(); err != nil {
 							log.Print(err)
 						}
+					case "喵": // 打卡
+						userProfileResponse, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
+						if err != nil {
+							log.Print(err)
+							return
+						}
+						mu.Lock()
+						if user, exists := subscribeMap[event.Source.GroupID][event.Source.UserID]; exists {
+							now := time.Now()
+							if (now.Hour() == user.InHour && now.Minute()-15 <= user.InMin) ||
+								(now.Hour() == user.OutHour && now.Minute()-15 <= user.OutMin) {
+								muok.Lock()
+								ok[event.Source.UserID] = time.Now().Add(time.Minute * 15)
+								muok.Unlock()
+								msg := userProfileResponse.DisplayName + " 已打卡喵"
+								if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(msg)).Do(); err != nil {
+									log.Print(err)
+								}
+							}
+						}
+						mu.Unlock()
 					}
 				}
 			}
 		}
 	})
+	go run()
 	// This is just sample code.
 	// For actual use, you must support HTTPS by using `ListenAndServeTLS`, a reverse proxy or something else.
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
+	}
+}
+
+var ok map[string]time.Time
+var muok sync.Mutex
+
+func run() {
+	for {
+		now := time.Now()
+		next := now.Add(time.Minute)
+		next = time.Date(next.Year(), next.Month(), next.Day(), next.Hour(), next.Minute(), 0, 0, next.Location())
+		t := time.NewTimer(next.Sub(now))
+		tt := <-t.C
+		go func() {
+			muok.Lock()
+			for userID, t := range ok {
+				if t.Before(tt) {
+					delete(ok, userID)
+				}
+			}
+			muok.Unlock()
+		}()
+		mu.Lock()
+		for groupID, userList := range subscribeMap {
+			var inMsg, outMsg string
+			for userID, user := range userList {
+				if _, exists := ok[userID]; exists {
+					continue
+				}
+				if tt.Hour() == user.InHour && tt.Minute()-15 <= user.InMin {
+					inMsg += user.DisplayName + ", "
+				}
+				if tt.Hour() == user.OutHour && tt.Minute()-15 <= user.OutMin {
+					outMsg += user.DisplayName + ", "
+				}
+			}
+			if len(inMsg) != 0 {
+				inMsg += "快點打卡上班喵！"
+				if _, err := bot.PushMessage(groupID, linebot.NewTextMessage(inMsg)).Do(); err != nil {
+					log.Print(err)
+				}
+			}
+			if len(outMsg) != 0 {
+				outMsg += "快點打卡下班喵！"
+				if _, err := bot.PushMessage(groupID, linebot.NewTextMessage(outMsg)).Do(); err != nil {
+					log.Print(err)
+				}
+			}
+		}
+		mu.Unlock()
 	}
 }
