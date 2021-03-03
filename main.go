@@ -5,9 +5,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/line/line-bot-sdk-go/linebot"
 )
+
+var mu sync.Mutex
+
+var subscribeMap map[string][]string
 
 func main() {
 	bot, err := linebot.New(
@@ -28,7 +33,11 @@ func main() {
 			return
 		}
 		for _, event := range events {
-			fmt.Printf("%+v\n", event.Source)
+			if userProfileResponse, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do(); err != nil {
+				log.Print(err)
+			} else {
+				fmt.Printf("%+v\n", userProfileResponse)
+			}
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
