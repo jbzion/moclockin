@@ -184,8 +184,8 @@ func main() {
 						mu.Lock()
 						if user, exists := subscribeMap[event.Source.GroupID][event.Source.UserID]; exists {
 							now := time.Now()
-							if (now.Hour() == user.InHour && now.Minute()-15 <= user.InMin) ||
-								(now.Hour() == user.OutHour && now.Minute()-15 <= user.OutMin) {
+							if (now.Hour() == user.InHour && now.Minute()-15 <= user.InMin && now.Minute() >= user.InMin) ||
+								(now.Hour() == user.OutHour && now.Minute()-15 <= user.OutMin && now.Minute() >= user.OutMin) {
 								muok.Lock()
 								var msg string
 								if _, exists := ok[event.Source.GroupID]; !exists {
@@ -249,10 +249,10 @@ func run() {
 				}
 				fmt.Println(tt)
 				fmt.Println(user)
-				if tt.Hour() == user.InHour && tt.Minute()-15 <= user.InMin {
+				if tt.Hour() == user.InHour && tt.Minute()-15 <= user.InMin && tt.Minute() >= user.InMin {
 					inMsg += user.DisplayName + ", "
 				}
-				if tt.Hour() == user.OutHour && tt.Minute()-15 <= user.OutMin {
+				if tt.Hour() == user.OutHour && tt.Minute()-15 <= user.OutMin && tt.Minute() >= user.OutMin {
 					outMsg += user.DisplayName + ", "
 				}
 			}
