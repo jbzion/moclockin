@@ -78,7 +78,7 @@ func main() {
 								if outHour >= 24 {
 									outHour -= 24
 								}
-								msg += fmt.Sprintf("[%s] %d:%d - %d:%d\n", user.DisplayName, inHour, user.InMin, outHour, user.OutMin)
+								msg += fmt.Sprintf("[%s] %02d:%02d - %02d:%02d\n", user.DisplayName, inHour, user.InMin, outHour, user.OutMin)
 							}
 							msg += "喵"
 						}
