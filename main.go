@@ -227,6 +227,9 @@ func run() {
 		next = time.Date(next.Year(), next.Month(), next.Day(), next.Hour(), next.Minute(), 0, 0, next.Location())
 		t := time.NewTimer(next.Sub(now))
 		tt := <-t.C
+		if tt.Weekday() == 0 || tt.Weekday() == 6 {
+			continue
+		}
 		go func() {
 			muok.Lock()
 			for groupID := range ok {
