@@ -89,7 +89,7 @@ func callChatGptAPI(input string) (string, error) {
 
 	// 設定 HTTP 請求的標頭
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer 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")
+	req.Header.Set("Authorization", "Bearer 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")
 
 	// 發送 HTTP 請求並取得回應
 	client := &http.Client{}
