@@ -75,15 +75,23 @@ func main() {
 func callChatGptAPI(input string) (string, error) {
 	// 建立 HTTP 請求
 	req, err := http.NewRequest("POST", chatGptURL, strings.NewReader(`{
-        "model": "chatgpt","prompt": input,
-		"max_tokens": 64,
-		"temperature": 0.5,
-		"top_p": 1,
-		"frequency_penalty": 0,
-		"presence_penalty": 0
-	}`))
+        "model": "chatgpt",
+        "prompt": input,
+        "max_tokens": 64,
+        "temperature": 0.5,
+        "top_p": 1,
+        "frequency_penalty": 0,
+        "presence_penalty": 0
+    }`))
+	if err != nil {
+		return "", err
+	}
+
+	// 設定 HTTP 請求的標頭
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer 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")
+
+	// 發送 HTTP 請求並取得回應
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
