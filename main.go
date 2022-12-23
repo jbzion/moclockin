@@ -42,6 +42,7 @@ func main() {
 		log.Fatal(err)
 	}
 	http.HandleFunc("/callback", func(w http.ResponseWriter, req *http.Request) {
+
 		events, err := bot.ParseRequest(req)
 		if err != nil {
 			if err == linebot.ErrInvalidSignature {
