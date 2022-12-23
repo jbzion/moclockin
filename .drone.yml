@@ -17,7 +17,7 @@ steps:
       - git fetch --tags --depth=50
 
   - name: testing
-    image: golang:1.15
+    image: golang:1.18
     commands:
       - go test -v ./...
       - go vet
@@ -25,7 +25,7 @@ steps:
       - fetch
 
   - name: build_linux_amd64
-    image: golang:1.15
+    image: golang:1.18
     commands:
       - make build_linux_amd64
     depends_on:
