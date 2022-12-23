@@ -24,7 +24,7 @@ type User struct {
 
 var bot *linebot.Client
 
-const chatGptURL = "https://api.openai.com/v1/completions"
+const chatGptURL = "https://api.openai.com/v1/chat/gpt"
 
 func main() {
 	client, err := linebot.New(
@@ -74,15 +74,15 @@ func main() {
 
 func callChatGptAPI(input string) (string, error) {
 	// 建立 HTTP 請求
-	req, err := http.NewRequest("POST", chatGptURL, strings.NewReader(`{
+	req, err := http.NewRequest("POST", chatGptURL, strings.NewReader(fmt.Sprintf(`{
         "model": "chatgpt",
-        "prompt": input,
+        "prompt": %s,
         "max_tokens": 64,
         "temperature": 0.5,
         "top_p": 1,
         "frequency_penalty": 0,
         "presence_penalty": 0
-    }`))
+    }`, input)))
 	if err != nil {
 		return "", err
 	}
