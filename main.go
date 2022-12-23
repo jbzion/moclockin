@@ -24,7 +24,7 @@ type User struct {
 
 var bot *linebot.Client
 
-const chatGptURL = "https://api.openai.com/v1/chat/gpt"
+const chatGptURL = "https://api.openai.com/v1/completions"
 
 func main() {
 	client, err := linebot.New(
@@ -89,7 +89,7 @@ func callChatGptAPI(input string) (string, error) {
 
 	// 設定 HTTP 請求的標頭
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer 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")
+	req.Header.Set("Authorization", "Bearer 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")
 
 	// 發送 HTTP 請求並取得回應
 	client := &http.Client{}
