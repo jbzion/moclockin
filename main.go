@@ -1,15 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/line/line-bot-sdk-go/linebot"
+	gogpt "github.com/sashabaranov/go-gpt3"
 )
 
 var mu sync.Mutex
@@ -73,37 +73,17 @@ func main() {
 }
 
 func callChatGptAPI(input string) (string, error) {
-	// 建立 HTTP 請求
-	req, err := http.NewRequest("POST", chatGptURL, strings.NewReader(fmt.Sprintf(`{
-        "model": "text-davinci-003",
-        "prompt": %s,
-        "max_tokens": 64,
-        "temperature": 0.5,
-        "top_p": 1,
-        "frequency_penalty": 0,
-        "presence_penalty": 0
-    }`, input)))
+	c := gogpt.NewClient("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")
+	ctx := context.Background()
+
+	req := gogpt.CompletionRequest{
+		Model:     "text-davinci-003",
+		MaxTokens: 5,
+		Prompt:    input,
+	}
+	resp, err := c.CreateCompletion(ctx, req)
 	if err != nil {
 		return "", err
 	}
-
-	// 設定 HTTP 請求的標頭
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer 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")
-
-	// 發送 HTTP 請求並取得回應
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	// 讀取回應內容
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return string(body), nil
+	return resp.Choices[0].Text, nil
 }
