@@ -24,7 +24,7 @@ type User struct {
 
 var bot *linebot.Client
 
-const chatGptURL = "https://api.openai.com/v1/chat/gpt"
+const chatGptURL = "https://api.openai.com/v1/completions"
 
 func main() {
 	client, err := linebot.New(
