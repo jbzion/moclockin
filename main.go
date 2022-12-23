@@ -1,15 +1,14 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"sync"
 
+	chatgpt "github.com/golang-infrastructure/go-ChatGPT"
 	"github.com/line/line-bot-sdk-go/linebot"
-	gogpt "github.com/sashabaranov/go-gpt3"
 )
 
 var mu sync.Mutex
@@ -73,17 +72,13 @@ func main() {
 }
 
 func callChatGptAPI(input string) (string, error) {
-	c := gogpt.NewClient("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")
-	ctx := context.Background()
 
-	req := gogpt.CompletionRequest{
-		Model:     "text-davinci-003",
-		MaxTokens: 5,
-		Prompt:    input,
-	}
-	resp, err := c.CreateCompletion(ctx, req)
+	jwt := "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1UaEVOVUpHTkVNMVFURTRNMEZCTWpkQ05UZzVNRFUxUlRVd1FVSkRNRU13UmtGRVFrRXpSZyJ9.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJlNTAzMTBAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImdlb2lwX2NvdW50cnkiOiJUVyJ9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsidXNlcl9pZCI6InVzZXItVUhwVWhBUlcyYWk4ems1VWhkallnTndEIn0sImlzcyI6Imh0dHBzOi8vYXV0aDAub3BlbmFpLmNvbS8iLCJzdWIiOiJnb29nbGUtb2F1dGgyfDEwNjgxNDkwODQ2NDgxODY3MzA2MCIsImF1ZCI6WyJodHRwczovL2FwaS5vcGVuYWkuY29tL3YxIiwiaHR0cHM6Ly9vcGVuYWkuYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTY3MTQxMzYzOSwiZXhwIjoxNjcyMDE4NDM5LCJhenAiOiJUZEpJY2JlMTZXb1RIdE45NW55eXdoNUU0eU9vNkl0RyIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwgbW9kZWwucmVhZCBtb2RlbC5yZXF1ZXN0IG9yZ2FuaXphdGlvbi5yZWFkIG9mZmxpbmVfYWNjZXNzIn0.X40vjCMeAOsj89npWCy47MZkFLu6mt5ZzPvD9m97q1OG_9SzLYo6kBxSZSpaCKVrDF9AzDRNIASoeDd5FKMvS6VhCtilLo8WT-D1sHsuDdoRKbM4lJEteA-AqZSKSKRj4upwCLSngWqJf0nRrPWMYRmlUr7CJMQQ0575r1UPCu0mcSg-g6aKHvy1UTxR3jaKqfrluWqFU-vD3VwkqtcMhwuhLhT9eKtzWVulzXtqZKMO1M5VMRker4Au-n7KrXwWvgWj3UXECYts0k9Ozzm1Ogg78EXulHpO1xfnTQriqfiLc_68UUMxxrH4Ig4995Al1UsdOWlmvG8O2msHVNK89Q"
+	chat := chatgpt.NewChatGPT(jwt)
+	talk, err := chat.Talk(input)
 	if err != nil {
+		fmt.Println(err.Error())
 		return "", err
 	}
-	return resp.Choices[0].Text, nil
+	return talk.Message.Content.Parts[0], nil
 }
